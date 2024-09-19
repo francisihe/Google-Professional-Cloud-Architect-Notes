@@ -29,4 +29,18 @@ Sample output:
      STATUS: RUNNING
 
 2. To see the defaults run: 'gcloud compute instances create --help'
-3. 
+
+
+LAB 2: Getting Started with Cloud Shell and gcloud
+
+1. Command to set the region: 'gcloud config set compute/region REGION'
+2. Command to view the region setting: 'gcloud config get-value compute/region'
+3. Command to set the zone: 'gcloud config set compute/zone ZONE'
+4. Command to view project zone setting: 'gcloud config get-value compute/zone'
+5. Command to view project id: 'gcloud config get-value project'
+6. Command to view details of the project in 5 above: 'gcloud compute project-info describe --project $(gcloud config get-value project)'
+7. Setting env variable to store project ID: export PROJECT_ID=$(gcloud config get-value project)
+8. Setting env variable to store Zone: export ZONE=$(gcloud config get-value compute/zone)
+9. View the set variables: echo -e "PROJECT ID: $PROJECT_ID\nZONE: $ZONE"
+
+Creating the VM machine: 'gcloud compute instances create gcelab2 --machine-type e2-medium --zone $ZONE'
