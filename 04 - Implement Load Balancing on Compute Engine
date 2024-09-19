@@ -1,0 +1,32 @@
+LAB 1: Creating a Virtual Machine
+
+You can create virtual machines using 
+a. The Cloud Shell, from the Cloud console
+b. Using the gcloud command
+
+a. Using the Cloud Shell:
+In Cloud Shell, you click on Compute Engine - VM Instances, click 'Create Instance', fill in the parameters and hit create. You can SSH into it as well.
+
+You then install the NGINX web server
+1. Update the OS using 'sudo apt-get update'
+2. Install NGINX using 'sudo apt-get install -y nginx'
+3. Confirm that NGINX is running using 'ps auwx | grep nginx'
+4. Click on the external IP to see the default page in a new browser
+
+b. Using gclound command
+
+1. You use the command:
+gcloud compute instances create $NAME --machine-type e2-medium --zone=$ZONE
+Sample output:
+
+     Created [...gcelab2].
+     NAME: gcelab2
+     ZONE:  Zone
+     MACHINE_TYPE: e2-medium
+     PREEMPTIBLE:
+     INTERNAL_IP: 10.128.0.3
+     EXTERNAL_IP: 34.136.51.150
+     STATUS: RUNNING
+
+2. To see the defaults run: 'gcloud compute instances create --help'
+3. 
