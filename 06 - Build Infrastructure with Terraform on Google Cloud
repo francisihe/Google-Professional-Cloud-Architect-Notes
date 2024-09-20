@@ -25,3 +25,12 @@ Complex changesets can be applied to your infrastructure with minimal human inte
 =======================
 
 LAB 1: Terraform Fundamentals
+Ref: https://developer.hashicorp.com/terraform/language
+
+1. Terraform installation can be verified using 'terraform' command. These are helpful as well: terraform [--version] [--help]  [args]
+2. The set of files used to describe infrastructure in Terraform is simply known as a "Terraform configuration"
+3. Terraform file type is '.tf'. Note that terraform loads all .tf files in a directory
+4. To initialize a new configuration: terraform init
+5. To create an execution plan: terraform plan
+6. To apply changes highlighted after creating the plan: terraform apply
+7. To inspect the current state: terraform show
