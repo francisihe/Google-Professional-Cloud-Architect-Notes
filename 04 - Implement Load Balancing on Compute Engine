@@ -76,7 +76,7 @@ Add a tag to the gcelab2 virtual machine
 Add a firewall rule for http traffic
 
 3. Add a tag to the virtual machine: gcloud compute instances add-tags gcelab2 --tags http-server,https-server
-4. Update the firewall rule to allow: gcloud compute firewall-rules create default-allow-http --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:80 --source-ranges=0.0.0.0/0 --target-tags=http-server
+4. Update the firewall rule to allow traffic: gcloud compute firewall-rules create default-allow-http --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:80 --source-ranges=0.0.0.0/0 --target-tags=http-server
 5. List the firewall rules for the project: gcloud compute firewall-rules list --filter=ALLOW:'80'
 6. Verify communication is possible for http to the virtual machine: curl http://$(gcloud compute instances list --filter=name:gcelab2 --format='value(EXTERNAL_IP)')
 
@@ -90,3 +90,48 @@ Add a firewall rule for http traffic
 
 ===============================
 
+
+LAB 3: Set Up Network and HTTP Load Balancers
+
+Load balancers only work when the VMs, instance groups or network endpoints are in the same region and project.
+
+There are two types of load balancers:
+1. Network Load Balancer (https://cloud.google.com/load-balancing/docs/network/networklb-backend-service)
+2. HTTP(s) Load Balancer (https://cloud.google.com/load-balancing/docs/https)
+
+++  Set the default region and zone for all resources
+1. Set the default region: gcloud config set compute/region $Region
+2. Set the default zone: gcloud config set compute/zone $Zone
+
+++  Create multiple web server instances
+
+Personal Note: In doing this, we create the different instances, 2 or more, give them the same tag for easy identification and filtering. An example command is below. 
+
+In this command, we create the instance with the name 'www1', and other flags. The metadata flag has a script, and a brief explanation of that script is below the command:
+
+  gcloud compute instances create www1 \
+    --zone=Zone \
+    --tags=network-lb-tag \
+    --machine-type=e2-small \
+    --image-family=debian-11 \
+    --image-project=debian-cloud \
+    --metadata=startup-script='#!/bin/bash
+      apt-get update
+      apt-get install apache2 -y
+      service apache2 restart
+      echo "
+<h3>Web Server: www1</h3>" | tee /var/www/html/index.html'
+
+Brief explanation of script:
+1. --metadata=startup-script specifies the name of the script
+2. #!/bin/bash shows that it is a bash script with several commands within it
+3. These apt-get update && apt-get install apache2 -y get updates and install apache. -y allows it run with yes in response to any questions, so it installs without requiring manual intervention
+4. service apache2 restart is to restart the apache service
+5. echo "<h3>Web Server: www1</h3>" is basically to return the item in the quote
+6. tee /var/www/html/index.html' is a command to create an index.html file at that location, to display the message above
+
+1. We run the command above, changing the name using www1, www2, www3 as desired
+2. We then create a firewall rule to allow external traffic to the VM instances: gcloud compute firewall-rules create www-firewall-network-lb \
+    --target-tags network-lb-tag --allow tcp:80
+3. To see the instances created: gcloud compute instances list
+4. We can 'curl http://[IP_ADDRESS]' the external IP addresses of each instance to verify that they work
