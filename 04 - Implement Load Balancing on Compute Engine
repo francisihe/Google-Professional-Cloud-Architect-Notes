@@ -270,6 +270,10 @@ gcloud compute forwarding-rules create http-content-rule \
    --target-http-proxy=http-lb-proxy \
    --ports=80
 
+NOTE: 
+
+gcloud compute instance-groups managed set-named-ports lb-backend-group --named-ports http:80 --zone=us-east1-b did it for me (I was receiving the error "Please create the managed instance group with 2 nginx web server" even though the load balancer worked properly)
+
 ===================
 
 NOTE ON NETWORK LOAD BALANCER VS HTTP LOAD BALANCER
