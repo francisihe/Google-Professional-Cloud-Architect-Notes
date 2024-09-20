@@ -103,7 +103,9 @@ There are two types of load balancers:
 1. Set the default region: gcloud config set compute/region $Region
 2. Set the default zone: gcloud config set compute/zone $Zone
 
+
 ++  Create multiple web server instances
+
 
 Personal Note: In doing this, we create the different instances, 2 or more, give them the same tag for easy identification and filtering. An example command is below. 
 
@@ -135,3 +137,69 @@ Brief explanation of script:
     --target-tags network-lb-tag --allow tcp:80
 3. To see the instances created: gcloud compute instances list
 4. We can 'curl http://[IP_ADDRESS]' the external IP addresses of each instance to verify that they work
+
+
+++ Configure the load balancing service
+Read more: https://cloud.google.com/compute/docs/load-balancing/network/
+
+Personal Note: To get the load balancing service to work, we need to create and expose a public-facing IP address, create a target pool and add a health check, add those instances created to the pool, as the pool now basically works as one source. Then we add a forwarding rule that exposes the IP and directs the traffic to the pool of compute instances. 
+
+1. Create a static external IP address for your load balancer: gcloud compute addresses create network-lb-ip-1 \
+  --region Region
+2. Add a legacy HTTP health check resource: gcloud compute http-health-checks create basic-check
+3. Add a target pool in the same region as your instances. Run the following to create the target pool and use the health check, which is required for the service to function: gcloud compute target-pools create www-pool \
+  --region Region --http-health-check basic-check
+4. Add the instances to the pool: gcloud compute target-pools add-instances www-pool \
+    --instances www1,www2,www3
+5. Add a forwarding rule: gcloud compute forwarding-rules create www-rule \
+    --region  Region \
+    --ports 80 \
+    --address network-lb-ip-1 \
+    --target-pool www-pool
+
+
+++ Sending traffic to your instances
+
+Personal note: After configuring the load balancer, we can then get the external IP of the forwarding rule, which is used by the load balancer to direct traffic to the VMS in the pool.
+1. To view the external IP of the forwarding rule: gcloud compute forwarding-rules describe www-rule --region Region
+2. Access the external IP address and assign it to a variable: IPADDRESS=$(gcloud compute forwarding-rules describe www-rule --region Region --format="json" | jq -r .IPAddress)
+3. Show the external IP address: echo $IPADDRESS
+4. We can then see the working process by testing with a curl to the addresses: while true; do curl -m1 $IPADDRESS; done
+
+
+
+===================
+
+NOTE ON NETWORK LOAD BALANCER VS HTTP LOAD BALANCER
+
+Creating a Network Load Balancer (NLB) and an HTTP(S) Load Balancer serves different purposes due to the layers of the OSI model they operate on and the specific use cases they address.
+
+### Key Differences
+
+1. **Layer of Operation:**
+   - **Network Load Balancer:** Operates at Layer 4 (Transport Layer) of the OSI model. It routes traffic based on IP addresses and TCP/UDP port numbers. It’s ideal for handling raw traffic and is more suitable for non-HTTP protocols.
+   - **HTTP(S) Load Balancer:** Operates at Layer 7 (Application Layer). It understands HTTP(S) requests, allowing it to make routing decisions based on the content of the requests, such as URL paths or headers.
+
+2. **Features:**
+   - **Network Load Balancer:**
+     - Simple and low-latency routing.
+     - Supports both TCP and UDP traffic.
+     - Generally used for applications that do not need advanced routing capabilities.
+
+   - **HTTP(S) Load Balancer:**
+     - Advanced features like URL mapping, SSL termination, and content-based routing.
+     - Supports features like caching, GZIP compression, and WebSocket connections.
+     - Ideal for web applications where routing decisions need to be based on the request content.
+
+3. **Use Cases:**
+   - **NLB Use Cases:** Suitable for applications needing high throughput and low latency, like gaming servers, VoIP, or any non-HTTP service.
+   - **HTTP(S) Load Balancer Use Cases:** Best for serving web applications where you want to direct traffic based on URL, serve different content based on the request, or handle SSL certificates.
+
+### When to Use Both
+
+In some architectures, you might want to use both load balancers:
+- The **NLB** can handle high-speed TCP traffic to your backend services, while the **HTTP(S) Load Balancer** can route HTTP traffic to different services based on URL patterns, ensuring optimized content delivery and application performance.
+
+### Summary
+
+In essence, you create a Network Load Balancer for general TCP/UDP traffic management and an HTTP(S) Load Balancer for more advanced web application traffic management. Each serves its unique role, providing flexibility and efficiency based on your specific application needs.
