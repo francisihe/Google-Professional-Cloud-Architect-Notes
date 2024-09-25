@@ -106,3 +106,8 @@ resource "google_compute_network" "vpc_network" {
 3. Initialize Terraform: terraform init
 4. Apply configuration: terraform apply
 5. To show and inspect the added configuration: terraform show
+6. To change a configuration, edit the file, run the 'terraform apply' command
+7. To destroy an infrastructure: terraform destroy
+8. To see what changes to be applied: terraform plan
+9. To save a plan: terraform plan -out <name>
+10. To apply a saved plan: terraform apply <name>
