@@ -72,3 +72,37 @@ Global options (use these before the subcommand, if any):
                 given subcommand.
   -help         Show this help output, or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
+
+
+===================
+
+
+LAB 2: Infrastructure as Code with Terraform
+
+1. Create main.tf file: touch main.tf
+2. Add code to main.tf file. Sample code below:
+```
+terraform {
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      version = "3.5.0"
+    }
+  }
+}
+
+provider "google" {
+
+  project = "PROJECT ID"
+  region  = "REGION"
+  zone    = "ZONE"
+}
+
+resource "google_compute_network" "vpc_network" {
+  name = "terraform-network"
+}
+```
+
+3. Initialize Terraform: terraform init
+4. Apply configuration: terraform apply
+5. To show and inspect the added configuration: terraform show
