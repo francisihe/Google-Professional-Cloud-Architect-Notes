@@ -1,3 +1,5 @@
+Course link: https://www.cloudskillsboost.google/course_templates/636
+
 Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared among co-workers, treated as code, edited, reviewed, and versioned.
 
 What is Terraform?
@@ -111,3 +113,29 @@ resource "google_compute_network" "vpc_network" {
 8. To see what changes to be applied: terraform plan
 9. To save a plan: terraform plan -out <name>
 10. To apply a saved plan: terraform apply <name>
+
+
+=====================
+
+LAB 3: Interact with Terraform Modules
+
+What is a Terraform module?
+A Terraform module is a set of Terraform configuration files in a single directory. Even a simple configuration consisting of a single directory with one or more .tf files is a module. When you run Terraform commands directly from such a directory, it is considered the root module.
+
+What modules are for:
+1. Organize configuration: Modules make it easier to navigate, understand, and update your configuration by keeping related parts of your configuration together.
+2. Encapsulate configuration: Another benefit of using modules is to encapsulate configuration into distinct logical components.
+3. Re-use configuration: Writing all of your configuration without using existing code can be time-consuming and error-prone.
+4. Provide consistency and ensure best practices: Modules also help to provide consistency in your configurations.
+
+++ To Use modules from the registry (a remote source)
+Ref: https://www.terraform.io/docs/modules/sources.html
+
+1. Open the registry page: https://registry.terraform.io/modules/terraform-google-modules/network/google/3.3.0
+
+2. We'll clone a sample project for Google Terraform from GitHub:
+git clone https://github.com/terraform-google-modules/terraform-google-network
+cd terraform-google-network
+git checkout tags/v6.0.1 -b v6.0.1
+
+3. Open the file and navigate to the main.tf file. Review the input variables required. 
