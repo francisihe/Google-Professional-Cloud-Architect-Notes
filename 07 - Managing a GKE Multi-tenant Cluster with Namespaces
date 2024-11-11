@@ -1,0 +1,32 @@
+
+1. Download yaml files to configure the kubernetes clusters: gsutil -m cp -r gs://spls/gsp766/gke-qwiklab ~
+2. Change working directory to gke-qwiklab: cd ~/gke-qwiklab
+3. Set the default compute zone and authenticate the cluster multi-tenant-cluster:
+
+export ZONE=placeholder
+gcloud config set compute/zone ${ZONE} && gcloud container clusters get-credentials multi-tenant-cluster
+
+4. Get full list of current cluster namespaces: kubectl get namespace
+    Note: For a complete list of namespaced resources: kubectl api-resources --namespaced=true
+
+Viewing and Creating Namespaces
+
+5. Create 2 namespaces for team-a and team-b:
+kubectl create namespace team-a && \
+kubectl create namespace team-b
+
+6. kubectl create namespace team-a && \
+kubectl create namespace team-b
+
+kubectl run app-server --image=centos --namespace=team-a -- sleep infinity && \
+kubectl run app-server --image=centos --namespace=team-b -- sleep infinity
+
+7. Use kubectl get pods -A to see there are 2 pods named app-server, one for each team namespace:
+
+kubectl get pods -A
+
+8.  To see additional details for each new pod: kubectl get pods -A
+9.  To work exclusively with resources in one namespace, you can set it once in the kubectl context instead of using the --namespace flag for every command:
+kubectl config set-context --current --namespace=team-a
+
+10.  
