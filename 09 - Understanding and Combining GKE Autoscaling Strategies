@@ -1,1 +1,53 @@
 
+1.  Set your default zone to us-central1-a: gcloud config set compute/zone us-central1-a
+2.  Run the following command to create a three node cluster in the us-central1-a zone: gcloud container clusters create scaling-demo --num-nodes=3 --enable-vertical-pod-autoscaling
+To help demonstrate horizontal pod autoscaling, this lab uses a custom docker image based on the php-apache image. It defines an index.php page which performs some CPU intensive computations. You will monitor a deployment of this image.
+
+3.   Create a manifest for the php-apache deployment:
+cat << EOF > php-apache.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+spec:
+  selector:
+    matchLabels:
+      run: php-apache
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        run: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        image: k8s.gcr.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache
+  labels:
+    run: php-apache
+spec:
+  ports:
+  - port: 80
+  selector:
+    run: php-apache
+EOF
+
+4.  Apply the newly created manifest to your cluster: kubectl apply -f php-apache.yaml
+
+
+Task 1. Scale pods with Horizontal Pod Autoscaling
+Horizontal Pod Autoscaling changes the shape of your Kubernetes workload by automatically increasing or decreasing the number of pods in response to the workload's CPU or memory consumption, or in response to custom metrics reported from within Kubernetes or external metrics from sources outside of your cluster.
+
+1. In Cloud Shell, run this command to inspect your cluster's deployments: kubectl get deployment
+2.  Apply horizontal autoscaling to the php-apache deployment: kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
