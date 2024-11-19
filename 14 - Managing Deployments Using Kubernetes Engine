@@ -1,1 +1,258 @@
 
+Sure! Here’s a detailed, step-by-step guide to completing the lab, including all the commands and configurations you've used so far. I'll go through the tasks in the correct order, from setting up the VPCs to deploying WordPress on Kubernetes with Cloud SQL integration.
+
+Step-by-Step Instructions:
+Step 1: Create the Development VPC
+Create the griffin-dev-vpc with subnets:
+
+Create the griffin-dev-vpc VPC with two subnets: griffin-dev-wp and griffin-dev-mgmt.
+
+bash
+Copy code
+gcloud compute networks create griffin-dev-vpc --subnet-mode custom
+Create the first subnet griffin-dev-wp:
+
+bash
+Copy code
+gcloud compute networks subnets create griffin-dev-wp --network=griffin-dev-vpc --region us-east4 --range 192.168.16.0/20
+Create the second subnet griffin-dev-mgmt:
+
+bash
+Copy code
+gcloud compute networks subnets create griffin-dev-mgmt --network=griffin-dev-vpc --region us-east4 --range 192.168.32.0/20
+Step 2: Create the Production VPC
+Create the griffin-prod-vpc with subnets:
+
+bash
+Copy code
+gcloud compute networks create griffin-prod-vpc --subnet-mode custom
+Create the first subnet griffin-prod-wp:
+
+bash
+Copy code
+gcloud compute networks subnets create griffin-prod-wp --network=griffin-prod-vpc --region us-east4 --range 192.168.48.0/20
+Create the second subnet griffin-prod-mgmt:
+
+bash
+Copy code
+gcloud compute networks subnets create griffin-prod-mgmt --network=griffin-prod-vpc --region us-east4 --range 192.168.64.0/20
+Step 3: Create the Cloud SQL Database Instance
+Create the MySQL Cloud SQL instance griffin-dev-db:
+
+bash
+Copy code
+gcloud sql instances create griffin-dev-db \
+    --database-version=MYSQL_8_0 \
+    --tier=db-n1-standard-1 \
+    --region=us-east4 \
+    --network=griffin-dev-vpc
+Create the database wordpress inside the instance:
+
+bash
+Copy code
+gcloud sql databases create wordpress --instance=griffin-dev-db
+Set up the database user (wp_user) and password (stormwind_rules):
+
+bash
+Copy code
+gcloud sql users create wp_user --instance=griffin-dev-db --password=stormwind_rules
+Get the Cloud SQL connection name for use in the WordPress deployment:
+
+bash
+Copy code
+gcloud sql instances describe griffin-dev-db --format="value(connectionName)"
+Example output:
+
+makefile
+Copy code
+qwiklabs-gcp-00-a382e989aaa9:us-east4:griffin-dev-db
+Note this connection name for later use in the WordPress deployment YAML.
+
+Step 4: Set Up Kubernetes Cluster
+Create a Kubernetes cluster griffin-dev in the griffin-dev-wp subnet (with 2 nodes and e2-standard-4 machine type):
+
+bash
+Copy code
+gcloud container clusters create griffin-dev \
+    --zone us-east4-a \
+    --num-nodes 2 \
+    --machine-type e2-standard-4 \
+    --network griffin-dev-vpc \
+    --subnetwork griffin-dev-wp
+Verify that the cluster is created:
+
+bash
+Copy code
+gcloud container clusters list
+Step 5: Prepare the Kubernetes Cluster
+Install kubectl credentials to interact with your cluster:
+
+bash
+Copy code
+gcloud container clusters get-credentials griffin-dev --zone us-east4-a --project <your-project-id>
+Copy WordPress Kubernetes files from Google Cloud Storage:
+
+bash
+Copy code
+gsutil -m cp -r gs://cloud-training/gsp321/wp-k8s .
+Create secrets and volume configuration:
+
+Create the secrets for the database username and password (wp-env.yaml):
+Set the username to wp_user and the password to stormwind_rules.
+Example wp-env.yaml:
+
+yaml
+Copy code
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wordpress-volumeclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database
+type: Opaque
+stringData:
+  username: wp_user
+  password: stormwind_rules
+Apply the secrets and volume claim:
+bash
+Copy code
+kubectl apply -f wp-env.yaml
+Create the service account key for the Cloud SQL Proxy:
+
+bash
+Copy code
+gcloud iam service-accounts keys create key.json \
+    --iam-account=cloud-sql-proxy@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
+Create the secret for the service account key (cloudsql-instance-credentials):
+
+bash
+Copy code
+kubectl create secret generic cloudsql-instance-credentials \
+    --from-file=key.json
+Step 6: Edit and Deploy WordPress YAML Files
+Edit the wp-deployment.yaml file with the correct Cloud SQL instance connection:
+
+Replace YOUR_SQL_INSTANCE in the file with the actual Cloud SQL connection name you obtained earlier.
+Example configuration snippet:
+
+yaml
+Copy code
+volumeMounts:
+  - name: wordpress-persistent-storage
+    mountPath: /var/www/html
+- name: cloudsql-proxy
+  image: gcr.io/cloudsql-docker/gce-proxy:1.33.2
+  command: ["/cloud_sql_proxy",
+            "-instances=qwiklabs-gcp-00-a382e989aaa9:us-east4:griffin-dev-db=tcp:3306",
+            "-credential_file=/secrets/cloudsql/key.json"]
+  securityContext:
+    runAsUser: 2  # non-root user
+    allowPrivilegeEscalation: false
+  volumeMounts:
+    - name: cloudsql-instance-credentials
+      mountPath: /secrets/cloudsql
+      readOnly: true
+volumes:
+  - name: wordpress-persistent-storage
+    persistentVolumeClaim:
+      claimName: wordpress-volumeclaim
+  - name: cloudsql-instance-credentials
+    secret:
+      secretName: cloudsql-instance-credentials
+Deploy WordPress with the wp-deployment.yaml:
+
+bash
+Copy code
+kubectl apply -f wp-deployment.yaml
+Step 7: Create WordPress Service (Load Balancer)
+Create the service YAML (wp-service.yaml) for exposing WordPress via a Load Balancer:
+
+yaml
+Copy code
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: wordpress
+  name: wordpress
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app: wordpress
+Apply the service YAML:
+
+bash
+Copy code
+kubectl apply -f wp-service.yaml
+Step 8: Verify and Access WordPress
+Check if the WordPress deployment pod is running:
+
+bash
+Copy code
+kubectl get pods
+You should see a pod with the name wordpress-xxxxxx in the Running state.
+
+Get the external IP address of the Load Balancer:
+
+bash
+Copy code
+kubectl get svc
+You should see an output like this:
+
+scss
+Copy code
+NAME            TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)        AGE
+wordpress       LoadBalancer   10.108.7.120    35.233.12.34    80:32452/TCP   5m
+Note the EXTERNAL-IP.
+
+Access the WordPress site in your browser:
+
+Open your browser and navigate to the external IP (e.g., http://35.233.12.34).
+
+You should see the WordPress installation page where the development team can complete the setup.
+
+Final Summary of Commands Used:
+Create VPCs and subnets:
+
+bash
+Copy code
+gcloud compute networks create griffin-dev-vpc --subnet-mode custom
+gcloud compute networks subnets create griffin-dev-wp --network=griffin-dev-vpc --region us-east4 --range 192.168.16.0/20
+gcloud compute networks subnets create griffin-dev-mgmt --network=griffin-dev-vpc --region us-east4 --range 192.168.32.0/20
+Create Cloud SQL Database:
+
+bash
+Copy code
+gcloud sql instances create griffin-dev-db --database-version=MYSQL_8_0 --tier=db-n1-standard-1 --region=us-east4 --network=griffin-dev-vpc
+gcloud sql users create wp_user --instance=griffin-dev-db --password=stormwind_rules
+Create Kubernetes Cluster:
+
+bash
+Copy code
+gcloud container clusters create griffin-dev --zone us-east4-a --num-nodes 2 --machine-type e2-standard-4 --network griffin-dev-vpc --subnetwork griffin-dev-wp
+Deploy WordPress and expose with LoadBalancer:
+
+bash
+Copy code
+kubectl apply -f wp-env.yaml
+kubectl apply -f wp-deployment.yaml
+kubectl apply -f wp-service.yaml
+Access the WordPress Site:
+
+bash
+Copy code
+kubectl get svc
+Open the external IP in your browser.
